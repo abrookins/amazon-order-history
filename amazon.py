@@ -1,4 +1,7 @@
 import csv
+from decimal import *
+import locale
+locale.setlocale( locale.LC_ALL, '' )
 
 class Order:
     def __init__(self, order_id):
@@ -22,7 +25,7 @@ class Order:
 
 class Item:
     def __init__(self, item_price, item_name, purchase_date, category):
-        self.price = float(item_price[1:])
+        self.price = Decimal(item_price[1:])
         self.name = str(item_name)
         self.purchase_date = purchase_date
         self.category = category
@@ -64,6 +67,9 @@ for order in orders:
             breakdown[item.category] = 0
         breakdown[item.category] += item.price
 
+for category, price in breakdown.iteritems():
+    if category == '':
+        category = 'None'
+    print "{0}: {1}".format(category, locale.currency( price, grouping=True ))
 
-print breakdown
-print total_sum
+print "\nTotal: {0}".format(locale.currency( total_sum, grouping=True ))
