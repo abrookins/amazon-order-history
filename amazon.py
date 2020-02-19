@@ -2,6 +2,7 @@ import csv
 import locale
 from decimal import Decimal
 
+import click
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -39,6 +40,12 @@ class Order:
             ', '.join(self.categories),
             ', '.join([i.name for i in self.items]))
 
+    def __lt__(self, other):
+        return self.order_date < other.order_date
+
+    def __gt__(self, other):
+        return self.order_date > other.order_date
+
 
 class Item:
     def __init__(self, item_price, item_name, purchase_date, category,
@@ -51,13 +58,12 @@ class Item:
 
     def __repr__(self):
         return "Item: {} (${}) x{}".format(self.name, self.price,
-                                              self.quantity)
+                                           self.quantity)
 
 
-def load_orders_from_csv():
-    csv_file = open('amazon.csv', 'r')
+def load_orders_from_csv(filename):
+    csv_file = open(filename, 'r')
     reader = csv.DictReader(csv_file)
-
     orders = {}
 
     for row in reader:
@@ -71,18 +77,26 @@ def load_orders_from_csv():
         if not order_id in orders:
             orders[order_id] = Order(order_id)
         orders[order_id].add_item(i)
-    return orders
+
+    return orders.values()
 
 
-def main():
-    orders = load_orders_from_csv()
+@click.command()
+@click.argument('filenames', nargs=-1)
+def main(filenames):
+    orders = []
+
+    for filename in filenames:
+        orders += load_orders_from_csv(filename)
+
+    orders = sorted(orders)
     total_sum = 0
     breakdown = {}
 
     for order in orders:
-        total_sum += orders[order].total_price
+        total_sum += order.total_price
 
-        for item in orders[order].items:
+        for item in order.items:
             if item.category not in breakdown:
                 breakdown[item.category] = 0
             breakdown[item.category] += item.price
@@ -92,8 +106,7 @@ def main():
     for category, price in breakdown.items():
         if category == '':
             category = 'None'
-        print("{}: {}".format(category, locale.currency(price,
-                                                          grouping=True)))
+        print("{}: {}".format(category, locale.currency(price, grouping=True)))
 
     print("\nTotal spent:")
     print("------------")
@@ -101,7 +114,7 @@ def main():
 
     print("\nOrders:")
     print("-------")
-    for order in orders.values():
+    for order in orders:
         print(order)
         print()
 
